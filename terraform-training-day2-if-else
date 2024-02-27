@@ -1,0 +1,60 @@
+[root@jpmc-24 ~]# cd
+[root@jpmc-24 ~]# mkdir ec2_ifelse/   ^C
+[root@jpmc-24 ~]# cd ec2_ifelse/
+[root@jpmc-24 ec2_ifelse]# cp -fr ../ec2_count/*.tf .   ^C
+[root@jpmc-24 ec2_ifelse]# cat vars.tf
+variable "region" {
+  default = "ap-south-1"
+}
+
+variable "access_key" {
+  default = ""
+}
+
+variable "secret_key" {
+  default = ""
+}
+
+variable "ami" {
+  default = "ami-03f4878755434977f"
+}
+
+variable "instance_type" {
+  default = "t2.micro"
+}
+
+variable "tags" {
+  default = { Name = "sagar-vm" }
+}
+
+variable "env" {
+  description = "Environment Variable"
+}
+[root@jpmc-24 ec2_ifelse]# cat main.tf
+resource "aws_key_pair" "example" {
+  key_name   = "${var.tags.Name}-kp"
+  public_key = file("/root/.ssh/id_rsa.pub")
+}
+
+resource "aws_instance" "example" {
+  count = "${ var.env == "dev" ? 1 : var.env == "uat" ? 2 : 3 }"
+  ami           = var.ami
+  instance_type = "${ var.env == "dev" ? "t2.nano" : var.env == "uat" ? "t2.micro" : "t2.small" }"
+  tags = { Name = "${var.tags.Name}-${var.env}-${count.index}" }
+  key_name = aws_key_pair.example.key_name
+}
+[root@jpmc-24 ec2_ifelse]# cat out.tf
+output "MyPublicIPNew" {
+  value = aws_instance.example[*].public_ip
+}
+
+output "MyPublicIPNewOneMore" {
+  value = [
+    for x in aws_instance.example:
+      x.public_ip
+  ]
+}
+[root@jpmc-24 ec2_ifelse]# terraform init   ^C
+[root@jpmc-24 ec2_ifelse]# terraform plan   ^C
+[root@jpmc-24 ec2_ifelse]# terraform apply   ^C
+[root@jpmc-24 ec2_ifelse]# terraform apply -var=env=uat    ^C

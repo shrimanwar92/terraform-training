@@ -1,0 +1,54 @@
+[root@jpmc-24 ~]# cd
+[root@jpmc-24 ~]# mkdir terraform_template/  ^C
+[root@jpmc-24 ~]# cd terraform_template/
+[root@jpmc-24 terraform_template]# cat main.tf
+#trimspace(data.template_file.mytextdata.rendered)
+data "template_file" "mytextdata" {
+  template = file("${path.module}/myenv")
+}
+
+output "MyTextData" {
+  value = trimspace(data.template_file.mytextdata.rendered)
+}
+
+locals {
+  myjsondata = jsondecode(file("${path.module}/mydata.json"))
+  mycsvdata = csvdecode(file("${path.module}/mydata.csv"))
+}
+
+output "MyJsonData" {
+  value = local.myjsondata
+}
+
+output "MyJSONDataPRDUSER" {
+  value = local.myjsondata.project.1.user_name
+}
+
+output "MyCSVdata" {
+  value = local.mycsvdata
+}
+
+output "MyCSVDataPRDUSER" {
+  value = local.mycsvdata.1.user_name
+}
+[root@jpmc-24 terraform_template]# cat myenv
+   dev string
+[root@jpmc-24 terraform_template]# cat mydata.json
+{
+    "project": [
+        {
+            "user_name": "devuser",
+            "env": "dev"
+        },
+        {
+            "user_name": "prduser",
+            "env": "prd"
+        }
+    ]
+}
+[root@jpmc-24 terraform_template]# cat mydata.csv
+user_name,env
+devuser,dev
+prduser,prd
+[root@jpmc-24 terraform_template]# terraform init   ^C
+[root@jpmc-24 terraform_template]# terraform apply   ^C

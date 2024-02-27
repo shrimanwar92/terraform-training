@@ -1,0 +1,66 @@
+Create resource ec2 -> login to console -> change/update tag in instance -> drift is introduced
+
+terraform plan -> will show if drift is there -> tag is added
+               -> will show "No changes" if no drift
+
+terraform refresh -> will update the state file and add the tag details to state file (no code)
+takes recent configuration from aws server and update the state file
+
+With drift, 3 options to remidiate,
+1) Either update the code (update main.tf)
+2) Revert the manual changes or drift by simple doing terraform apply or removing from aws console
+3) Accept drift by ignore_changes in lifecycle block
+
+https://developer.hashicorp.com/terraform/tutorials/state/resource-lifecycle
+
+lifecycle {
+  prevent_destroy = true
+  ignore_changes = ['tags'] => resource attributes in array
+  create_before_destroy = true => first create then destroy (default action - first destroy then create) to reverse default behaviour
+}
+-> will not delete the resource all other resources will get deleted after "terraform destroy" is triggered
+
+[root@jpmc-24 ec2_ssh]# cat main.tf
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "5.37.0"
+    }
+  }
+}
+
+provider "aws" {
+  region     = "ap-south-1"
+  access_key = ""
+  secret_key = ""
+}
+
+resource "aws_key_pair" "example" {
+  key_name   = "nilay-kp-new"
+  public_key = file("/root/.ssh/id_rsa.pub")
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-03f4878755434977f"
+  instance_type = "t2.micro"
+  tags = {
+    Name = "nilay-drift-vm"
+    Env = "dev"
+  }
+  key_name = aws_key_pair.example.key_name
+}
+
+#terraform plan
+#terraform state list
+#terraform refresh
+
+
+To remove drift
+1) terraform refresh (to update state file from drifted changes)
+2) Update code to add the drifted changes
+3) Terraform plan will show no changes then
+
+Terraform plan will take code and compare it with actual aws infrastructure
+Terraform refresh will update statefile with drifted changes if any
+

@@ -1,0 +1,71 @@
+[root@jpmc-24 ~]# cd
+[root@jpmc-24 ~]# mkdir -p terraform_modules/ubuntu2204/   ^C
+[root@jpmc-24 ~]# cd terraform_modules/ubuntu2204/
+[root@jpmc-24 ubuntu2204]# cp -fr ../../ec2_ssh/*.tf .   ^C
+[root@jpmc-24 ubuntu2204]# cat vars.tf
+variable "region" {
+  default = "ap-south-1"
+}
+
+variable "access_key" {
+  default = ""
+}
+
+variable "secret_key" {
+  default = ""
+}
+
+locals {
+  ami = "ami-03f4878755434977f"
+  mandate_tags = { Org = "tavisca" }
+  final_tags = merge(local.mandate_tags, var.tags)
+}
+
+variable "instance_type" {
+  default = "t2.micro"
+}
+
+variable "tags" {
+  default = { Name = "sagar-vm" }
+}
+
+output "final_tags_out" {
+  value = local.final_tags
+}
+[root@jpmc-24 ubuntu2204]# cat main.tf
+resource "aws_key_pair" "example" {
+  key_name   = "${var.tags.Name}-kp"
+  public_key = file("/root/.ssh/id_rsa.pub")
+}
+
+resource "aws_instance" "example" {
+  ami           = local.ami
+  instance_type = var.instance_type
+  tags = local.final_tags
+  key_name = aws_key_pair.example.key_name
+}
+
+======================================================================================
+
+
+
+[root@jpmc-24 ~]# cd
+[root@jpmc-24 ~]# mkdir calling_module/   ^C
+[root@jpmc-24 ~]# cd calling_module/
+[root@jpmc-24 calling_module]# cat call.tf
+module "myserver" {
+  source = "/root/terraform_modules/ubuntu2204"
+  instance_type = "t2.small"
+  tags = { Name = "sagar-module-vm" }
+}
+
+output "MyModuleOutput" {
+  value = module.myserver.MyPublicIP
+}
+[root@jpmc-24 calling_module]# terraform init   ^C
+[root@jpmc-24 calling_module]# terraform plan   ^C
+[root@jpmc-24 calling_module]# terraform apply   ^C
+[root@jpmc-24 calling_module]# ls -ltr .terraform/modules/
+total 4
+lrwxrwxrwx. 1 root root  34 Feb 20 12:13 myserver -> /root/terraform_modules/ubuntu2204
+-rw-r--r--. 1 root root 154 Feb 20 12:30 modules.json

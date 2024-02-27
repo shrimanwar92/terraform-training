@@ -1,0 +1,44 @@
+# taint = destroy + recreate
+
+terraform taint tells tells terraform that resource is corrupted/damaged and whenever next apply comes recreate it.
+
+in Statefile, {"state": "tainted"} is added in resource block of resource being tainted.
+
+Terraform taint marks a resource as degraded or damaged, indicating that this resource will be destroyed and recreated during the next apply operation. This can be particularly useful when a resource is in an undesirable or unexpected state, but its configuration hasn’t changed. Terraform basically forces the recreation of resources even if the configuration matches the current state.
+
+This command is deprecated and you should use the “-replace” option of terraform apply to achieve the same behavior.
+
+https://spacelift.io/blog/terraform-taint
+
+[root@jpmc-24 ~]# cd
+[root@jpmc-24 ~]# cd ec2_vm
+[root@jpmc-24 ec2_vm]# cat main.tf
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "5.37.0"
+    }
+  }
+}
+
+provider "aws" {
+  region     = "ap-south-1"
+  access_key = ""
+  secret_key = ""
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-03f4878755434977f"
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "sagar-vm"
+  }
+}
+[root@jpmc-24 ec2_vm]# terraform taint aws_instance.example   ^C
+[root@jpmc-24 ec2_vm]# vi terraform.tfstate   ^C
+[root@jpmc-24 ec2_vm]# terraform untaint aws_instance.example    ^C
+[root@jpmc-24 ec2_vm]# vi terraform.tfstate  ^C
+[root@jpmc-24 ec2_vm]# terraform taint aws_instance.example   ^C
+[root@jpmc-24 ec2_vm]# terraform apply   ^C

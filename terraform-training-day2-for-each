@@ -1,0 +1,53 @@
+[root@jpmc-24 ~]# cd
+[root@jpmc-24 ~]# mkdir ec2_foreach1/
+[root@jpmc-24 ~]# cd ec2_foreach1/
+[root@jpmc-24 ec2_foreach1]# cp -fr ../ec2_foreach/*.tf .
+[root@jpmc-24 ec2_foreach1]# cat main.tf
+resource "aws_key_pair" "example" {
+  key_name   = "${var.tags.Name}-kp"
+  public_key = file("/root/.ssh/id_rsa.pub")
+}
+
+#aws_instance.example["dev"]
+#aws_instance.example["uat"]
+#aws_instance.example["prd"]
+resource "aws_instance" "example" {
+  for_each = { dev = ["ami-03f4878755434977f", "t2.nano"], uat = ["ami-03f4878755434977f", "t2.micro"], prd = ["ami-03f4878755434977f", "t2.small"] }
+  ami           = each.value[0]
+  instance_type = each.value[1]
+  tags = { Name = "${var.tags.Name}-${each.key}" }
+  #sagar-vm-dev,sagar-vm-uat,sagar-vm-prd
+  key_name = aws_key_pair.example.key_name
+}
+[root@jpmc-24 ec2_foreach1]# cat out.tf
+output "MyPublicIP" {
+  value = "${aws_instance.example["dev"].public_ip}, ${aws_instance.example["uat"].public_ip}, ${aws_instance.example["prd"].public_ip}"
+}
+
+output "MyPublicIPNewOne" {
+  value = [
+    for x in keys(aws_instance.example):
+      aws_instance.example[x].public_ip
+  ]
+}
+
+output "MyPublicIPNewOneMore" {
+  value = [
+    for x in aws_instance.example:
+      x.public_ip
+  ]
+}
+
+output "MyPublicIPNewValues" {
+  value = [
+    for x in values(aws_instance.example):
+      x.public_ip
+  ]
+}
+
+#aws_instance.example["dev"]
+#aws_instance.example["uat"]
+#aws_instance.example["prd"]
+
+[root@jpmc-24 ec2_foreach1]# terraform init
+[root@jpmc-24 ec2_foreach1]# terarform apply

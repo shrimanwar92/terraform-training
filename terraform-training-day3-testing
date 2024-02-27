@@ -1,0 +1,5 @@
+[root@jpmc-24 ~]# pip3 install checkov    ^C
+[root@jpmc-24 ~]# 
+[root@jpmc-24 ~]# checkov --directory ec2_foreach       ^C
+[root@jpmc-24 ~]# 
+[root@jpmc-24 ~]# checkov --file ec2_vm/main.tf          ^C

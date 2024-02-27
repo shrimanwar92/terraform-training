@@ -1,0 +1,38 @@
+[root@jpmc-24 ~]# cd
+[root@jpmc-24 ~]# mkdir terraform_http/
+[root@jpmc-24 ~]# cd terraform_http/
+[root@jpmc-24 terraform_http]# cat main.tf
+data "http" "myapidata" {
+  url = "https://datausa.io/api/data?drilldowns=NationANDmeasures=Population"
+  request_headers = {
+    Accept = "application/json"
+  }
+}
+
+output "ourresponsebody" {
+  value = data.http.myapidata.response_body
+}
+
+locals {
+  mydata = jsondecode(data.http.myapidata.response_body)
+}
+
+output "ourdata" {
+  value = local.mydata
+}
+
+output "ourdata0" {
+  value = local.mydata.data.0
+}
+
+output "ourdata0Popu" {
+  value = local.mydata.data.0.Population
+}
+
+resource "local_file" "myfile" {
+  content = data.http.myapidata.response_body
+  filename = "${path.module}/mydata"
+}
+
+[root@jpmc-24 terraform_http]# terraform init
+[root@jpmc-24 terraform_http]# terraform apply

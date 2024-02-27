@@ -1,0 +1,39 @@
+[root@jpmc-24 ~]# cd
+[root@jpmc-24 ~]# mkdir terraform_remote/   ^C
+[root@jpmc-24 ~]# cd terraform_remote/
+[root@jpmc-24 terraform_remote]# cat main.tf
+terraform {
+  backend "local" {
+    path = "/etc/mystatefile"
+  }
+
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "5.37.0"
+    }
+  }
+}
+
+provider "aws" {
+  region     = "ap-south-1"
+  access_key = ""
+  secret_key = ""
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-03f4878755434977f"
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "sagar-vm"
+  }
+}
+[root@jpmc-24 terraform_remote]# terraform init   ^C
+[root@jpmc-24 terraform_remote]# terraform apply   ^C
+[root@jpmc-24 terraform_remote]# ls -ltr /etc/mystatefile*
+-rw-r--r--. 1 root root 4796 Feb 20 15:51 /etc/mystatefile.backup
+-rw-r--r--. 1 root root 4800 Feb 20 15:51 /etc/mystatefile
+
+########################################################################################################################
+

@@ -1,0 +1,33 @@
+[root@jpmc-24 terraform_workspace]# cat credentials
+[dev]
+aws_access_key_id=""
+aws_secret_access_key=""
+
+[uat]
+aws_access_key_id=""
+aws_secret_access_key=""
+
+[prd]
+aws_access_key_id=""
+aws_secret_access_key=""
+
+
+[root@jpmc-24 terraform_workspace]# cat provider.tf
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "5.37.0"
+    }
+  }
+}
+
+provider "aws" {
+  region     = var.region
+  shared_credentials_files = ["${path.module}/credentials"]
+  profile                  = "${terraform.workspace}" # will select respective credential block
+}
+[root@jpmc-24 terraform_workspace]# terraform workspace select dev   ^C
+[root@jpmc-24 terraform_workspace]# terraform apply -auto-approve    ^C
+[root@jpmc-24 terraform_workspace]# terraform workspace select uat   ^C
+[root@jpmc-24 terraform_workspace]# terraform apply -auto-approve   ^C

@@ -1,0 +1,129 @@
+Default workspace by default in terraform.
+
+Each workspace will have separate state file.
+Workspace will share same codebase.
+
+When we create a new workspace, Terraform creates a corresponding new state file in the same remote backend
+that is configured initially.
+It is important to note that the backend being used should also be able to support workspace.
+
+We can implement infra rollback based on workspaces implemented at story/task level. Each task/story will have separate workspace.
+New branch -> new workspace -> separate state file (But same shared codebase)
+do the development
+deploy and test
+if pass -> merge to develop (it will have separate state file)
+if fail -> destroy the infra and it will delete the state file
+
+
+[root@jpmc-24 ~]# cd
+[root@jpmc-24 ~]# mkdir terraform_workspace/   ^C
+[root@jpmc-24 ~]# cd terraform_workspace/
+[root@jpmc-24 terraform_workspace]# cp -fr ../ec2_ifelse/*.tf .    ^C
+[root@jpmc-24 terraform_workspace]# cat main.tf
+resource "aws_key_pair" "example" {
+  key_name   = "${var.tags.Name}-kp"
+  public_key = file("/root/.ssh/id_rsa.pub")
+}
+
+resource "aws_instance" "example" {
+  count = "${ terraform.workspace == "dev" ? 1 : terraform.workspace == "uat" ? 2 : 3 }"
+  ami           = var.ami
+  instance_type = "${ terraform.workspace == "dev" ? "t2.nano" : terraform.workspace == "uat" ? "t2.micro" : "t2.small" }"
+  tags = { Name = "${var.tags.Name}-${terraform.workspace}-${count.index}" }
+  key_name = aws_key_pair.example.key_name
+}
+[root@jpmc-24 terraform_workspace]# terraform init    ^C
+[root@jpmc-24 terraform_workspace]# terraform workspace show     ^C
+[root@jpmc-24 terraform_workspace]# terraform workspace list     ^C
+[root@jpmc-24 terraform_workspace]# terraform workspace new dev     ^C
+[root@jpmc-24 terraform_workspace]# terraform workspace show
+dev
+[root@jpmc-24 terraform_workspace]# terraform workspace list
+  default
+* dev
+
+[root@jpmc-24 terraform_workspace]# terraform apply
+
+[root@jpmc-24 terraform_workspace]# terraform workspace new uat
+Created and switched to workspace "uat"!
+
+You're now on a new, empty workspace. Workspaces isolate their state,
+so if you run "terraform plan" Terraform will not see any existing state
+for this configuration.
+[root@jpmc-24 terraform_workspace]# terraform apply
+
+
+[root@jpmc-24 terraform_workspace]# terraform workspace new prd    ^C
+[root@jpmc-24 terraform_workspace]# terraform apply     ^C
+
+
+
+[root@jpmc-24 terraform_workspace]# ls -lta
+total 24
+drwxr-xr-x.  5 root root   39 Feb 21 12:02 terraform.tfstate.d
+drwxr-xr-x.  4 root root  141 Feb 21 12:01 .
+-rw-r--r--.  1 root root  540 Feb 21 12:01 main.tf
+-rw-r--r--.  1 root root 1406 Feb 21 11:56 .terraform.lock.hcl
+drwxr-xr-x.  3 root root   42 Feb 21 11:56 .terraform
+-rw-r--r--.  1 root root  175 Feb 21 11:55 out.tf
+-rw-r--r--.  1 root root  221 Feb 21 11:53 provider.tf
+-rw-r--r--.  1 root root  355 Feb 21 11:53 vars.tf
+dr-xr-x---. 24 root root 4096 Feb 21 11:52 ..
+[root@jpmc-24 terraform_workspace]# ls -ltr terraform.tfstate.d/
+total 0
+drwxr-xr-x. 2 root root 31 Feb 21 11:59 dev
+drwxr-xr-x. 2 root root 63 Feb 21 12:02 uat
+drwxr-xr-x. 2 root root 31 Feb 21 12:03 prd
+[root@jpmc-24 terraform_workspace]# ls -ltr terraform.tfstate.d/dev/
+total 8
+-rw-r--r--. 1 root root 6625 Feb 21 11:59 terraform.tfstate
+[root@jpmc-24 terraform_workspace]# ls -ltr terraform.tfstate.d/uat/
+total 16
+-rw-r--r--. 1 root root   180 Feb 21 12:01 terraform.tfstate.backup
+-rw-r--r--. 1 root root 11279 Feb 21 12:02 terraform.tfstate
+[root@jpmc-24 terraform_workspace]# ls -ltr terraform.tfstate.d/prd/
+total 16
+-rw-r--r--. 1 root root 15898 Feb 21 12:03 terraform.tfstate
+
+
+
+[root@jpmc-24 terraform_workspace]# terraform workspace show
+prd
+[root@jpmc-24 terraform_workspace]# terraform workspace select dev
+Switched to workspace "dev".
+[root@jpmc-24 terraform_workspace]# terraform workspace show
+dev
+[root@jpmc-24 terraform_workspace]# terraform destroy -auto-approve
+
+
+##############################################
+
+
+terraform workspace select default ; terraform destroy -auto-approve ;
+terraform workspace select dev ; terraform destroy -auto-approve ;
+terraform workspace select uat ; terraform destroy -auto-approve ;
+terraform workspace select prd ; terraform destroy -auto-approve ;
+
+[root@jpmc-14 terraform_null_sleep]# terraform workspace new test
+Created and switched to workspace "test"!
+
+Do you want to perform these actions in workspace "test"?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: yes
+
+[root@jpmc-14 terraform_null_sleep]# ls
+main.tf  terraform.tfstate  terraform.tfstate.d
+
+[root@jpmc-14 terraform_null_sleep]# cd terraform.tfstate.d/
+
+[root@jpmc-14 terraform.tfstate.d]# ls
+test
+
+[root@jpmc-14 terraform.tfstate.d]# cd test/
+
+[root@jpmc-14 test]# ls
+terraform.tfstate
+
+[root@jpmc-14 test]#
